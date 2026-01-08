@@ -116,6 +116,65 @@ class AnalyticsView(TemplateView):
     template_name = 'tracker/analytics.html'
 
     def get_context_data(self, **kwargs):
-        # TODO: Implement analytics
-        return super().get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
+        
+        # Prepare data for analytics
+        # We want to see correlation between Habit Values and Productivity
+        
+        habits = Habit.objects.all()
+        graphs = []
+
+        for habit in habits:
+            # Get logs for this habit
+            logs = HabitLog.objects.filter(habit=habit).select_related('entry')
+            if not logs.exists():
+                continue
+            
+            data = []
+            for log in logs:
+                data.append({
+                    'date': log.entry.date,
+                    'value': log.value,
+                    'productivity': log.entry.productivity_score,
+                    'mood': log.entry.mood_score
+                })
+            
+            df = pd.DataFrame(data)
+            if df.empty or len(df) < 2:
+                continue
+
+            # Calculate Correlation
+            corr_prod = df['value'].corr(df['productivity'])
+            
+            # Generate Plot
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.scatter(df['value'], df['productivity'], alpha=0.7)
+            
+            # Add trend line
+            if len(df) > 1:
+                z = np.polyfit(df['value'], df['productivity'], 1)
+                p = np.poly1d(z)
+                ax.plot(df['value'], p(df['value']), "r--", alpha=0.8)
+
+            ax.set_title(f"{habit.name} vs Productivity (Corr: {corr_prod:.2f})")
+            ax.set_xlabel(f"{habit.name} ({habit.unit})")
+            ax.set_ylabel("Productivity Score (1-10)")
+            ax.grid(True, linestyle='--', alpha=0.5)
+
+            # Save to buffer
+            buf = io.BytesIO()
+            fig.tight_layout()
+            fig.savefig(buf, format='png')
+            buf.seek(0)
+            string = base64.b64encode(buf.read())
+            uri = urllib.parse.quote(string)
+            graphs.append({
+                'habit': habit,
+                'image': uri,
+                'correlation': corr_prod
+            })
+            plt.close(fig)
+
+        context['graphs'] = graphs
+        return context
 
