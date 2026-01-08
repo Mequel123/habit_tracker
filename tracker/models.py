@@ -11,8 +11,8 @@ class Habit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='habits')
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='health')
-    target_value = models.FloatField(help_text="Target goal")
-    # unit = models.CharField(max_length=50) # TODO: Add unit later
+    target_value = models.FloatField(help_text="Target goal for the habit (e.g. 8 for hours, 2000 for ml)")
+    unit = models.CharField(max_length=50, help_text="Unit of measurement (e.g. hours, ml, pages)")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
