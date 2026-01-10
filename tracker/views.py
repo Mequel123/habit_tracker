@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import TemplateView, ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
@@ -97,17 +97,26 @@ class HabitLogCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         # Ensure the entry belongs to user or create one for today if not selected?
-        # The form has 'entry'? No, HabitLogForm has 'habit' and 'value'. It needs 'entry'.
-        # My HabitLogForm definition in forms.py included 'habit' and 'value'. It is missing 'entry'.
-        # We need to assign 'entry'.
+        # The form has 'habit' and 'value'. It needs 'entry'.
         # Strategy: Get or create DailyEntry for today for this user.
         
         today = pd.Timestamp.now().date()
         entry, created = DailyEntry.objects.get_or_create(
             user=self.request.user,
             date=today,
-            defaults={'productivity_score': 5, 'mood_score': 5} # Default values if creating implicitly
+            defaults={'productivity_score': 5, 'mood_score': 5}
         )
+        
+        # Check if log already exists for this habit today to prevent IntegrityError
+        habit = form.cleaned_data['habit']
+        existing_log = HabitLog.objects.filter(entry=entry, habit=habit).first()
+        
+        if existing_log:
+            # Update existing log
+            existing_log.value = form.cleaned_data['value']
+            existing_log.save()
+            return redirect(self.success_url)
+        
         form.instance.entry = entry
         return super().form_valid(form)
 
