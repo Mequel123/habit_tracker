@@ -6,24 +6,67 @@
     <p class="text-gray-600">See how your habits influence your productivity.</p>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Controls / Settings -->
+<div class="bg-gray-50 border rounded-lg p-6 mb-8 shadow-sm">
+    <h3 class="text-lg font-bold mb-4 text-gray-700">Advanced Analysis Settings</h3>
+    <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Metric Selection -->
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Compare Against</label>
+            <select name="metric" class="w-full border rounded px-3 py-2 bg-white">
+                <option value="productivity" {% if controls.metric == "productivity" %}selected{% endif %}>Productivity Score</option>
+                <option value="mood" {% if controls.metric == "mood" %}selected{% endif %}>Mood Score</option>
+            </select>
+        </div>
+
+        <!-- Smoothing Window -->
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Smoothing Window (Days): <span id="window-val">{{ controls.window }}</span></label>
+            <input type="range" name="window" min="1" max="14" value="{{ controls.window }}" 
+                   class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                   oninput="document.getElementById('window-val').innerText = this.value">
+            <p class="text-xs text-gray-500 mt-1">Rolling average to reduce noise.</p>
+        </div>
+
+        <!-- Outlier Cutoff -->
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Outlier Tolerance (Std Dev): <span id="std-val">{{ controls.std }}</span></label>
+            <input type="range" name="std" min="1.0" max="4.0" step="0.1" value="{{ controls.std }}" 
+                   class="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer"
+                   oninput="document.getElementById('std-val').innerText = this.value">
+            <p class="text-xs text-gray-500 mt-1">Discard extreme values (excesses).</p>
+        </div>
+
+        <!-- Normalization -->
+        <div class="flex items-center">
+            <input type="checkbox" id="normalize" name="normalize" {% if controls.normalize %}checked{% endif %} class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+            <label for="normalize" class="ml-2 text-sm font-medium text-gray-900">Normalize Values (Scale to 1-10)</label>
+        </div>
+
+        <div class="md:col-span-2 lg:col-span-4 flex justify-end">
+            <a href="{% url 'analytics' %}" class="mr-4 px-4 py-2 text-gray-600 hover:text-gray-800">Reset</a>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 shadow">Update Charts</button>
+        </div>
+    </form>
+</div>
+
+<div class="grid grid-cols-1 gap-8">
     {% for graph in graphs %}
     <div class="bg-white rounded-lg shadow-lg p-4">
-        <h3 class="text-xl font-bold mb-4 border-b pb-2">{{ graph.habit.name }}</h3>
+        <h3 class="text-xl font-bold mb-2 border-b pb-2 flex justify-between">
+            {{ graph.habit.name }}
+            <span class="text-sm font-normal text-gray-500">Samples: {{ graph.n_samples }}</span>
+        </h3>
         <div class="mb-4">
-            <span class="text-sm font-semibold text-gray-500">Correlation Coefficient:</span>
+            <span class="text-sm font-semibold text-gray-500">Correlation (Pearson):</span>
             <span class="font-bold {% if graph.correlation > 0.5 %}text-green-600{% elif graph.correlation < -0.5 %}text-red-600{% else %}text-gray-800{% endif %}">
                 {{ graph.correlation|floatformat:2 }}
             </span>
-            <p class="text-xs text-gray-400 mt-1">
-                {% if graph.correlation > 0.3 %}
-                    Positive correlation: Doing more of this generally helps!
-                {% elif graph.correlation < -0.3 %}
-                    Negative correlation: Might be hindering productivity?
-                {% else %}
-                    No strong correlation found.
-                {% endif %}
-            </p>
+        </div>
+        <img src="data:image/png;base64,{{ graph.image }}" alt="Graph for {{ graph.habit.name }}" class="w-full h-auto rounded">
+    </div>
+    {% empty %}            </p>
         </div>
         <img src="data:image/png;base64,{{ graph.image }}" alt="Graph for {{ graph.habit.name }}" class="w-full h-auto rounded">
     </div>

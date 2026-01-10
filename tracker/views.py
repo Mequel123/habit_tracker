@@ -127,15 +127,25 @@ class AnalyticsView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Prepare data for analytics
-        # We want to see correlation between Habit Values and Productivity
+        # Get control parameters from request
+        window_size = int(self.request.GET.get('window', 1))
+        outlier_std = float(self.request.GET.get('std', 3.0))
+        target_metric = self.request.GET.get('metric', 'productivity') # 'productivity' or 'mood'
+        normalize = self.request.GET.get('normalize') == 'on'
+
+        context['controls'] = {
+            'window': window_size,
+            'std': outlier_std,
+            'metric': target_metric,
+            'normalize': normalize
+        }
         
         habits = Habit.objects.all()
         graphs = []
 
         for habit in habits:
-            # Get logs for this habit
-            logs = HabitLog.objects.filter(habit=habit).select_related('entry')
+            # Get logs for this habit sorted by date for rolling window
+            logs = HabitLog.objects.filter(habit=habit).select_related('entry').order_by('entry__date')
             if not logs.exists():
                 continue
             
@@ -152,27 +162,75 @@ class AnalyticsView(TemplateView):
             if df.empty or len(df) < 2:
                 continue
 
-            # Calculate Correlation
-            corr_prod = df['value'].corr(df['productivity'])
-            
-            # Generate Plot
-            fig, ax = plt.subplots(figsize=(6, 4))
-            ax.scatter(df['value'], df['productivity'], alpha=0.7)
-            
-            # Add trend line
-            if len(df) > 1:
-                z = np.polyfit(df['value'], df['productivity'], 1)
-                p = np.poly1d(z)
-                ax.plot(df['value'], p(df['value']), "r--", alpha=0.8)
+            # 1. Rolling Window (Smoothing)
+            if window_size > 1:
+                df['value'] = df['value'].rolling(window=window_size, min_periods=1, center=True).mean()
+                df[target_metric] = df[target_metric].rolling(window=window_size, min_periods=1, center=True).mean()
 
-            ax.set_title(f"{habit.name} vs Productivity (Corr: {corr_prod:.2f})")
-            ax.set_xlabel(f"{habit.name} ({habit.unit})")
-            ax.set_ylabel("Productivity Score (1-10)")
-            ax.grid(True, linestyle='--', alpha=0.5)
+            # 2. Outlier Removal (Z-Score > threshold)
+            # Remove rows where habit value is an outlier
+            if len(df) > 5: # Only if enough data
+                mean = df['value'].mean()
+                std = df['value'].std()
+                if std > 0:
+                     df = df[np.abs(df['value'] - mean) <= (outlier_std * std)]
+            
+            if df.empty or len(df) < 2:
+                continue
+
+            # 3. Normalization (Min-Max to 0-10 scale for visual comparison)
+            if normalize:
+                min_val = df['value'].min()
+                max_val = df['value'].max()
+                if max_val > min_val:
+                    df['value_scaled'] = 1 + (df['value'] - min_val) * 9 / (max_val - min_val)
+                    plot_x = 'value_scaled'
+                    xlabel = f"{habit.name} (Scaled 1-10)"
+                else:
+                    plot_x = 'value'
+                    xlabel = f"{habit.name} ({habit.unit})"
+            else:
+                plot_x = 'value'
+                xlabel = f"{habit.name} ({habit.unit})"
+
+            # Calculate Correlation
+            corr_val = df[plot_x].corr(df[target_metric])
+            
+            # --- Graph 1: Scatter (Correlation) ---
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+            
+            # Scatter Plot
+            ax1.scatter(df[plot_x], df[target_metric], alpha=0.7, c='blue')
+            if len(df) > 1:
+                z = np.polyfit(df[plot_x], df[target_metric], 1)
+                p = np.poly1d(z)
+                ax1.plot(df[plot_x], p(df[plot_x]), "r--", alpha=0.8)
+
+            ax1.set_title(f"Correlation: {corr_val:.2f}")
+            ax1.set_xlabel(xlabel)
+            ax1.set_ylabel(f"{target_metric.title()} Score")
+            ax1.grid(True, linestyle='--', alpha=0.5)
+
+            # --- Graph 2: Time Series Overlay ---
+            # Dual axis plot
+            color = 'tab:blue'
+            ax2.set_xlabel('Date')
+            ax2.set_ylabel(xlabel, color=color)
+            ax2.plot(df['date'], df[plot_x], color=color, label='Habit', marker='o', markersize=4)
+            ax2.tick_params(axis='y', labelcolor=color)
+            ax2.tick_params(axis='x', rotation=45)
+
+            ax3 = ax2.twinx()  # instantiate a second axes that shares the same x-axis
+            color = 'tab:red'
+            ax3.set_ylabel(f'{target_metric.title()} Score', color=color)
+            ax3.plot(df['date'], df[target_metric], color=color, label='Metric', linestyle='--', marker='x', markersize=4)
+            ax3.tick_params(axis='y', labelcolor=color)
+
+            ax2.set_title(f"Time Series Trend (Window: {window_size}d)")
+            fig.tight_layout()
 
             # Save to buffer
             buf = io.BytesIO()
-            fig.tight_layout()
             fig.savefig(buf, format='png')
             buf.seek(0)
             string = base64.b64encode(buf.read())
@@ -180,7 +238,8 @@ class AnalyticsView(TemplateView):
             graphs.append({
                 'habit': habit,
                 'image': uri,
-                'correlation': corr_prod
+                'correlation': corr_val,
+                'n_samples': len(df)
             })
             plt.close(fig)
 
