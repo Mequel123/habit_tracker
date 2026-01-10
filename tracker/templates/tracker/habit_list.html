@@ -8,22 +8,28 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for habit in habits %}
-    <a href="{% url 'habit_detail' habit.pk %}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md transition">
-        <div class="flex justify-between items-start mb-2">
-            <h3 class="text-xl font-semibold">{{ habit.name }}</h3>
-            <span class="px-2 py-1 text-xs font-semibold rounded 
-                {% if habit.category == 'health' %}bg-green-100 text-green-800
-                {% elif habit.category == 'productivity' %}bg-blue-100 text-blue-800
-                {% else %}bg-purple-100 text-purple-800{% endif %}">
-                {{ habit.get_category_display }}
-            </span>
+    <div class="block p-6 bg-white rounded-lg shadow hover:shadow-md transition flex flex-col justify-between h-full">
+        <div>
+            <div class="flex justify-between items-start mb-2">
+                <a href="{% url 'habit_detail' habit.pk %}" class="text-xl font-semibold hover:text-blue-600 transition">{{ habit.name }}</a>
+                <span class="px-2 py-1 text-xs font-semibold rounded 
+                    {% if habit.category == 'health' %}bg-green-100 text-green-800
+                    {% elif habit.category == 'productivity' %}bg-blue-100 text-blue-800
+                    {% else %}bg-purple-100 text-purple-800{% endif %}">
+                    {{ habit.get_category_display }}
+                </span>
+            </div>
+            <p class="text-gray-600 mb-4">Target: {{ habit.target_value }} {{ habit.unit }}</p>
         </div>
-        <p class="text-gray-600 mb-4">Target: {{ habit.target_value }} {{ habit.unit }}</p>
-        <div class="flex space-x-2">
-            <a href="{% url 'habit_log_add' %}?habit_id={{ habit.id }}" class="flex-1 bg-green-100 text-green-700 text-center py-1 rounded hover:bg-green-200 text-sm">Log Today</a>
-            <a href="{% url 'habit_edit' habit.pk %}" class="px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 text-sm">Edit</a>
+        <div class="flex items-center gap-2 mt-4">
+            <a href="{% url 'habit_log_add' %}?habit_id={{ habit.id }}" class="flex-1 bg-green-600 text-white text-center py-2 px-4 rounded hover:bg-green-700 transition font-medium shadow-sm">
+                Log Today
+            </a>
+            <a href="{% url 'habit_edit' habit.pk %}" class="bg-gray-100 text-gray-700 py-2 px-4 rounded hover:bg-gray-200 border border-gray-300 transition shadow-sm font-medium">
+                Edit
+            </a>
         </div>
-    </a>
+    </div>
     {% empty %}
     <div class="col-span-full text-center text-gray-500 py-8">
         No habits found.
