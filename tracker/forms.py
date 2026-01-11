@@ -7,10 +7,16 @@ class HabitForm(forms.ModelForm):
         fields = ['name', 'category', 'target_value', 'unit']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'w-full p-2 border rounded mb-4'}),
-            'category': forms.Select(attrs={'class': 'w-full p-2 border rounded mb-4'}),
+            'category': forms.TextInput(attrs={'class': 'w-full p-2 border rounded mb-4', 'list': 'category-list'}),
             'target_value': forms.NumberInput(attrs={'class': 'w-full p-2 border rounded mb-4'}),
             'unit': forms.TextInput(attrs={'class': 'w-full p-2 border rounded mb-4'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Update widget attributes if needed, though 'list' matches datalist id
+        # We can pass choices context in view, or hardcode Datalist in form? 
+        # Form rendering manual in template makes passing datalist easier in View.
 
 class DailyEntryForm(forms.ModelForm):
     class Meta:

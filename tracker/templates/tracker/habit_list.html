@@ -20,6 +20,21 @@
                 </span>
             </div>
             <p class="text-gray-600 mb-4">Target: {{ habit.target_value }} {{ habit.unit }}</p>
+            
+            <div class="flex gap-4 mb-4 text-sm">
+                <div class="flex flex-col">
+                    <span class="text-gray-500">Current Streak</span>
+                    <span class="font-bold flex items-center gap-1">
+                        🔥 {{ habit.streaks.current }} days
+                    </span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500">Best Streak</span>
+                    <span class="font-bold flex items-center gap-1">
+                        🏆 {{ habit.streaks.longest }} days
+                    </span>
+                </div>
+            </div>
         </div>
         <div class="flex items-center gap-2 mt-4">
             <a href="{% url 'habit_log_add' %}?habit_id={{ habit.id }}" class="flex-1 bg-green-600 text-white text-center py-2 px-4 rounded hover:bg-green-700 transition font-medium shadow-sm">

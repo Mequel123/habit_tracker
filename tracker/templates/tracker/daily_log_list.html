@@ -39,4 +39,37 @@
         </tbody>
     </table>
 </div>
+
+{% if is_paginated %}
+<div class="flex flex-col items-center mt-6">
+    <div class="flex text-gray-700">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="h-8 w-8 mr-1 flex justify-center items-center rounded-full bg-gray-200 cursor-pointer hover:bg-gray-300">
+                &laquo;
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="h-8 w-8 mr-1 flex justify-center items-center rounded-full bg-gray-200 cursor-pointer hover:bg-gray-300">
+                &lsaquo;
+            </a>
+        {% endif %}
+
+        <div class="flex h-8 font-medium">
+            <span class="w-8 flex justify-center items-center bg-blue-600 text-white rounded-full">
+                {{ page_obj.number }}
+            </span>
+        </div>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="h-8 w-8 ml-1 flex justify-center items-center rounded-full bg-gray-200 cursor-pointer hover:bg-gray-300">
+                &rsaquo;
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="h-8 w-8 ml-1 flex justify-center items-center rounded-full bg-gray-200 cursor-pointer hover:bg-gray-300">
+                &raquo;
+            </a>
+        {% endif %}
+    </div>
+    <div class="text-sm text-gray-500 mt-2">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </div>
+</div>
+{% endif %}
 {% endblock %}

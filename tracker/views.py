@@ -4,6 +4,7 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Avg
+from django.core.cache import cache
 from .models import Habit, DailyEntry, HabitLog
 from .forms import HabitForm, DailyEntryForm, HabitLogForm
 import pandas as pd
@@ -19,23 +20,18 @@ class UserOwnsObjectMixin:
     def get_queryset(self):
         return super().get_queryset().filter(user=self.request.user)
 
-class HomeView(TemplateView):
+class HomeView(LoginRequiredMixin, TemplateView):
     template_name = 'tracker/home.html'
 
-class HabitListView(ListView):
+class HabitListView(LoginRequiredMixin, ListView):
     model = Habit
     template_name = 'tracker/habit_list.html'
     context_object_name = 'habits'
 
     def get_queryset(self):
-         # If user is auth, show their habits. Else empty or public.
-         # For now, let's assume auth for demo or show all for 'guest' mode if intended.
-         # TZ says: Guest sees landing. User sees own.
-         if self.request.user.is_authenticated:
-             return Habit.objects.filter(user=self.request.user)
-         return Habit.objects.none()
+         return Habit.objects.filter(user=self.request.user)
 
-class HabitDetailView(DetailView):
+class HabitDetailView(LoginRequiredMixin, DetailView):
     model = Habit
     template_name = 'tracker/habit_detail.html'
     context_object_name = 'habit'
@@ -45,6 +41,14 @@ class HabitCreateView(LoginRequiredMixin, CreateView):
     form_class = HabitForm
     template_name = 'tracker/form.html'
     success_url = reverse_lazy('habit_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Combine default categories with user's existing ones
+        user_categories = Habit.objects.filter(user=self.request.user).values_list('category', flat=True).distinct()
+        defaults = set(Habit.DEFAULT_CATEGORIES)
+        context['categories'] = sorted(list(defaults.union(set(user_categories))))
+        return context
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -56,15 +60,39 @@ class HabitUpdateView(LoginRequiredMixin, UserOwnsObjectMixin, UpdateView):
     template_name = 'tracker/form.html'
     success_url = reverse_lazy('habit_list')
 
-class DailyLogListView(ListView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_categories = Habit.objects.filter(user=self.request.user).values_list('category', flat=True).distinct()
+        defaults = set(Habit.DEFAULT_CATEGORIES)
+        context['categories'] = sorted(list(defaults.union(set(user_categories))))
+        return context
+
+class DailyLogListView(LoginRequiredMixin, ListView):
     model = DailyEntry
     template_name = 'tracker/daily_log_list.html'
     context_object_name = 'entries'
+    paginate_by = 10
     
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return DailyEntry.objects.filter(user=self.request.user)
-        return DailyEntry.objects.none()
+        return DailyEntry.objects.filter(user=self.request.user).order_by('-date')
+
+    def get(self, request, *args, **kwargs):
+        # Cache first page for performance
+        page = request.GET.get('page', 1)
+        if str(page) == '1':
+            cache_key = f"daily_logs_{request.user.id}_p1"
+            cached_response = cache.get(cache_key)
+            if cached_response:
+                return cached_response
+            
+            response = super().get(request, *args, **kwargs)
+            if hasattr(response, 'render'):
+                response.render()
+            
+            cache.set(cache_key, response, 60 * 5) # 5 min cache
+            return response
+            
+        return super().get(request, *args, **kwargs)
 
 class DailyLogCreateView(LoginRequiredMixin, CreateView):
     model = DailyEntry
@@ -73,6 +101,8 @@ class DailyLogCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('daily_log_list')
 
     def form_valid(self, form):
+        # Invalidate list cache
+        cache.delete(f"daily_logs_{self.request.user.id}_p1")
         form.instance.user = self.request.user
         return super().form_valid(form)
 
@@ -81,6 +111,10 @@ class DailyLogUpdateView(LoginRequiredMixin, UserOwnsObjectMixin, UpdateView):
     form_class = DailyEntryForm
     template_name = 'tracker/form.html'
     success_url = reverse_lazy('daily_log_list')
+    
+    def form_valid(self, form):
+        cache.delete(f"daily_logs_{self.request.user.id}_p1")
+        return super().form_valid(form)
 
 class HabitLogCreateView(LoginRequiredMixin, CreateView):
     model = HabitLog
@@ -96,6 +130,9 @@ class HabitLogCreateView(LoginRequiredMixin, CreateView):
         return initial
 
     def form_valid(self, form):
+        # Invalidate list cache as this affects the log count display
+        cache.delete(f"daily_logs_{self.request.user.id}_p1")
+        
         # Ensure the entry belongs to user or create one for today if not selected?
         # The form has 'habit' and 'value'. It needs 'entry'.
         # Strategy: Get or create DailyEntry for today for this user.
@@ -121,7 +158,7 @@ class HabitLogCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class AnalyticsView(TemplateView):
+class AnalyticsView(LoginRequiredMixin, TemplateView):
     template_name = 'tracker/analytics.html'
 
     def get_context_data(self, **kwargs):
