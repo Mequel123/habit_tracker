@@ -19,7 +19,11 @@
 
 ## Скриншоты
 1.  **Панель управления**: Обзор привычек.
+<img width="1902" height="948" alt="image" src="https://github.com/user-attachments/assets/a9d085a1-69ec-47d8-b0b1-35e3239eb00f" />
+
 2.  **Аналитика**: Графики корреляции.
+<img width="1887" height="940" alt="image" src="https://github.com/user-attachments/assets/ede43a29-e3ec-45be-b817-0d650c883ef8" />
+
 
 ## Как запустить локально
 
