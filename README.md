@@ -1,74 +1,73 @@
-# HabitFlow - Personal Habit & Productivity Tracker
+**HabitFlow** — персональный трекер привычек и продуктивности
 
-HabitFlow is a web application designed to help you track your daily habits (sleep, water intake, reading, etc.) and analyze how they correlate with your daily productivity and mood. By visualizing these relationships, you can optimize your routine for better performance and well-being.
+**HabitFlow** — это веб-приложение, которое помогает отслеживать ежедневные привычки (сон, потребление воды, чтение и т. д.) и анализировать, как они влияют на вашу продуктивность и настроение. Визуализируя эти взаимосвязи, вы можете оптимизировать свой распорядок дня для повышения продуктивности и улучшения самочувствия.
 
-**Live Demo:** [https://habitflow-demo.pythonanywhere.com](https://habitflow-demo.pythonanywhere.com) *(Placeholder)*
+**Демонстрационная версия**: https://habit-tracker-y3no.onrender.com
 
-## Key Features
-*   **Habit Tracking:** Define custom habits with targets (e.g., "Sleep 8 hours").
-*   **Daily Journal:** Log your productivity (1-10) and mood (1-10) daily.
-*   **Analytics Dashboard:** View correlation graphs (Scatter plots with trendlines) to see if sleeping more actually makes you more productive.
-*   **Responsive UI:** Built with Tailwind CSS for a modern, mobile-friendly experience.
-
-## Tech Stack
+## Ключевые особенности
+*   **Отслеживание привычек**: создавайте собственные привычки с целями (например, «Спать 8 часов»).
+*   **Ежедневник**: Ежедневно записывайте свою продуктивность (от 1 до 10) и настроение (от 1 до 10).
+*   **Панель аналитики**: Просматривайте графики корреляции (диаграммы рассеяния с линиями тренда), чтобы понять, действительно ли более продолжительный сон повышает вашу продуктивность.
+*   **Адаптивный интерфейс**: Создан с использованием Tailwind CSS для современного и удобного для мобильных устройств интерфейса.
+*   
+## Технологический Стек
 *   **Python 3.x**
 *   **Django 4.x**
-*   **Pandas & NumPy** (Data Analysis)
-*   **Matplotlib** (Graph Generation)
-*   **Tailwind CSS** (Frontend Styling via CDN)
+*   **Pandas & NumPy** (анализ данных)
+*   **Matplotlib** (построение графиков
+*   **Tailwind CSS** (стилизация внешнего интерфейса через CDN)
 
-## Screenshots
-*(Insert Screenshots here)*
-1.  **Dashboard:** Overview of habits.
-2.  **Analytics:** Correlation graphs.
+## Скриншоты
+1.  **Панель управления**: Обзор привычек.
+2.  **Аналитика**: Графики корреляции.
 
-## How to Run Locally
+## Как запустить локально
 
-1.  **Clone the repository:**
+1.  **Клонировать репозиторий:**
     ```bash
     git clone https://github.com/yourusername/habit_tracker.git
     cd habit_tracker
     ```
 
-2.  **Create and activate virtual environment:**
+2.  **Создайте и активируйте виртуальную среду:**
     ```bash
-    # Using uv (recommended)
+    # Использование uv (рекомендуется)
     uv venv
     source .venv/bin/activate
     
-    # Or standard python
+    # Или стандартный python
     python -m venv venv
     source venv/bin/activate
     ```
 
-3.  **Install dependencies:**
+3.  **Установка зависимостей:**
     ```bash
     uv pip install -r requirements.txt
     # or
     pip install -r requirements.txt
     ```
 
-4.  **Run migrations:**
+4.  **Выполнение миграций:**
     ```bash
     python manage.py migrate
     ```
 
-5.  **Seed initial data (optional):**
+5.  **Введите исходные данные (необязательно):**
     ```bash
     python seed_data.py
     ```
-    *Creates a superuser `admin`/`admin` and sample data.*
+    *Создаёт суперпользователя admin/admin и примерные данные.*
 
-6.  **Start the server:**
+6.  **Запустите сервер:**
     ```bash
     python manage.py runserver
     ```
 
-7.  **Open in browser:**
+7.  **Открыть в браузере:**
     Go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
-## Deployment
-This project is configured for deployment on PythonAnywhere.
-1.  Set `DEBUG = False` in production.
-2.  Run `python manage.py collectstatic`.
-3.  Configure WSGI and Virtualenv on PythonAnywhere dashboard.
+## Развертывание
+Этот проект настроен для развёртывания на PythonAnywhere.
+1.  Установите `DEBUG = False` в рабочей среде.
+2.  Запустите `python manage.py collectstatic`.
+3.  Настройте WSGI and Virtualenv на панели управления PythonAnywhere.
